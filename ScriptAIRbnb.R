@@ -2,12 +2,15 @@
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path)) 
 
-if(!require('tidyverse')) install.packages('tidyverse') #if(!require('stringr')) 
+if(!require('tidyverse')) install.packages('tidyverse') 
 library(tidyverse)
+if(!require('randomForest')) install.packages('randomForest') 
 library (randomForest)
+if(!require('ggplot2')) install.packages('ggplot2') 
 library (ggplot2)
-install.packages('cowplot')
+if(!require('cowplot')) install.packages('cowplot') 
 library (cowplot)
+if(!require('caTools')) install.packages('caTools') 
 library(caTools)
 
 options(stringsAsFactors = FALSE)
