@@ -31,8 +31,8 @@ split <- sample.split(data_w_bias$fraud_label, SplitRatio = 2/3)
 trainset <- subset(data_w_bias, split == TRUE)
 testset <- subset(data_w_bias, split == FALSE)
 
-trainset$fraud_label <- as.factor(train$fraud_label)
-testset$fraud_label <- as.factor(test$fraud_label)
+trainset$fraud_label <- as.factor(trainset$fraud_label)
+testset$fraud_label <- as.factor(testset$fraud_label)
 
 ##### FITTING RANDOM FOREST REGRESSION TO DATA SET ####
 set.seed(1234)
