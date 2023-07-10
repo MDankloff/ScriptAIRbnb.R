@@ -40,7 +40,7 @@ data_w_fraud <- data_orig %>%
   mutate(fraud_label = all_label)
 
 data_w_fraud %>% glimpse
-glimpse(new_label)
+# glimpse(new_label)
 
 ##### ADD BIAS IN FRAUD LABELS for neigbourhood #############
 
