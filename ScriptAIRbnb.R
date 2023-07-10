@@ -13,7 +13,10 @@ library (cowplot)
 if(!require('caTools')) install.packages('caTools') 
 library(caTools)
 
-options(stringsAsFactors = FALSE)
+#options(stringsAsFactors = FALSE)
+
+if(!require('caret')) install.packages('caret')
+library(caret)
 
 ##### LOAD DATA #############
 data_orig <- read.csv('listings.csv') %>% as_tibble
@@ -37,6 +40,7 @@ data_w_fraud <- data_orig %>%
   mutate(fraud_label = all_label)
 
 data_w_fraud %>% glimpse
+glimpse(new_label)
 
 ##### ADD BIAS IN FRAUD LABELS for neigbourhood #############
 
@@ -45,7 +49,6 @@ hood <- "Oostelijk Havengebied - Indische Buurt"
 
 data_in_hood <- data_w_fraud %>% filter(neighbourhood == hood) 
 data_not_in_hood <- data_w_fraud %>% filter(neighbourhood != hood) 
-
 
 ### Make new fraud labels for one neighborhood
 fraud_rate_hood <- 0.4
@@ -64,31 +67,30 @@ data_in_hood <- data_in_hood %>%
 data_w_bias <- bind_rows(data_in_hood, data_not_in_hood)
 data_w_bias %>% nrow
 
-
 ##### EXPORT NEW DATA #############
 
 data_w_bias %>% write.csv('new_listings.csv', row.names = FALSE)
 
 #### REMOVE NA PREDICTORS ######
-data_w_bias = subset(data_w_bias, select = -c(neighbourhood_group, reviews_per_month) )
-data_w_bias = subset(data_w_bias, select = -c(reviews_per_month) )
+data_w_bias = subset(data_w_bias, select = -c(neighbourhood_group))
+data_w_bias <- data_w_bias %>% drop_na
 
-
-#### CONVERTING OUTCOME TO FACTOR (otherwise random forest doesn't work) ####
-#data_w_bias[data_w_bias$fraud_label == 0,]$fraud_label <- "No Fraudster"
-#data_w_bias[data_w_bias$fraud_label == 1,]$fraud_label <- "Fraudster"
+#### CONVERTING OUTCOME TO FACTOR (otherwise random forest doesn't work) & assign text to outcome  ####
+data_w_bias <- data_w_bias %>%
+  mutate(fraud_label_text = ifelse(fraud_label == 0, "Not_Fraud", "Fraud") )
 
 data_w_bias$fraud_label <- as.factor(data_w_bias$fraud_label)
+glimpse(data_w_bias)
 
 ####Split data set into train and test set ###
 set.seed(1234)
 
-split <- sample.split(data_w_bias$fraud_label, SplitRatio = 2/3)
+split <- sample.split(data_w_bias$fraud_label, SplitRatio = 0.67)
 trainset <- subset(data_w_bias, split == TRUE)
 testset <- subset(data_w_bias, split == FALSE)
 
-trainset$fraud_label <- as.factor(train$fraud_label)
-testset$fraud_label <- as.factor(test$fraud_label)
+#trainset$fraud_label <- as.factor(train$fraud_label)
+#testset$fraud_label <- as.factor(test$fraud_label)
 
 ##### FITTING RANDOM FOREST REGRESSION TO DATA SET ####
 set.seed(1234)
@@ -104,11 +106,16 @@ for (i in 1:10) {
 }
 oob.values
 
-
 ##make predictions on TEST data
 pred_test <- predict(regressor, newdata = testset, type = "class")
 
 pred_test
 
+predictions <-cbind(data.frame(train_preds= pred_test, testset$fraud_label))
+
+##create confusion matrix object
+
+cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
+print(cm)
 
 
