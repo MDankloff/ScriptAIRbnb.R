@@ -2,4 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-new_listings.csv
+*.csv
+*.geojson
