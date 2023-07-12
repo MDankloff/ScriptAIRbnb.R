@@ -2,16 +2,19 @@
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path)) 
 
-if(!require('tidyverse')) install.packages('tidyverse') 
+if(!require('tidyverse')) install.packages('tidyverse')
 library(tidyverse)
-if(!require('randomForest')) install.packages('randomForest') 
+if(!require('randomForest')) install.packages('randomForest')
 library (randomForest)
-if(!require('ggplot2')) install.packages('ggplot2') 
+if(!require('ggplot2')) install.packages('ggplot2')
 library (ggplot2)
-if(!require('cowplot')) install.packages('cowplot') 
+if(!require('cowplot')) install.packages('cowplot')
 library (cowplot)
-if(!require('caTools')) install.packages('caTools') 
+if(!require('caTools')) install.packages('caTools')
 library(caTools)
+if(!require('DALEX')) install.packages('DALEX')
+library(DALEX)
+
 
 #options(stringsAsFactors = FALSE)
 
@@ -40,7 +43,7 @@ data_w_fraud <- data_orig %>%
   mutate(fraud_label = all_label)
 
 data_w_fraud %>% glimpse
-# glimpse(new_label)
+glimpse(new_label)
 
 ##### ADD BIAS IN FRAUD LABELS for neigbourhood #############
 
@@ -117,5 +120,14 @@ predictions <-cbind(data.frame(train_preds= pred_test, testset$fraud_label))
 
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
+
+#use Classee
+
+# APPLY SHAP 
+exp_shap <- explain(regressor, data = testset, y= testset$fraud_label, label = "Regressor model")
+exp_shap
+
+fi_shap <- model_parts(exp_shap, B= 10, loss_function = loss_one_minus_auc)
+plot(fi_shap)
 
 
