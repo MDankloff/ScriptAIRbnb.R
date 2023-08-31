@@ -64,7 +64,6 @@ new_label <- c(fraud, nonfraud) %>% sample
 data_in_hood <- data_in_hood %>%
   mutate(fraud_label = new_label)
 
-
 ### Merge modified data subset with the unmodified one.
 
 data_w_bias <- bind_rows(data_in_hood, data_not_in_hood)
@@ -92,8 +91,8 @@ split <- sample.split(data_w_bias$fraud_label, SplitRatio = 0.67)
 trainset <- subset(data_w_bias, split == TRUE)
 testset <- subset(data_w_bias, split == FALSE)
 
-#trainset$fraud_label <- as.factor(train$fraud_label)
-#testset$fraud_label <- as.factor(test$fraud_label)
+trainset$fraud_label <- as.factor(trainset$fraud_label)
+testset$fraud_label <- as.factor(testset$fraud_label)
 
 ##### FITTING RANDOM FOREST REGRESSION TO DATA SET ####
 set.seed(1234)
@@ -123,7 +122,10 @@ print(cm)
 
 #use Classee
 
-# APPLY SHAP 
+## APPLY SHAP 
+## change this back to numeric otherwise shap doesnt work
+trainset$fraud_label <- as.numeric(trainset$fraud_label)
+testset$fraud_label <- as.numeric(testset$fraud_label)
 exp_shap <- explain(regressor, data = testset, y= testset$fraud_label, label = "Regressor model")
 exp_shap
 
