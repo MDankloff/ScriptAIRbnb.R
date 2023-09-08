@@ -78,13 +78,13 @@ rf_model = randomForest(x = trainset %>% select(-fraud_label),
                          y = trainset$fraud_label,
                          ntree = 100, mtry = 10)
 
-fit <- rpart(fraud_label ~ ., data = trainset)
+tree_model <- rpart(fraud_label ~ ., data = trainset)
 
-plot(fit)
+plot(tree_model)
 
 ##### TEST MODEL ####
-pred_test <- rf_model %>% 
-  predict(newdata = testset %>% select(-fraud_label), type = "class")
+pred_test <- tree_model %>% 
+  predict(newdata = testset)
 
 predictions <-cbind(data.frame(train_preds = pred_test, testset$fraud_label))
 
