@@ -62,11 +62,11 @@ testset_random <- subset(data_1hot, split == FALSE)
 ##### SPLIT DATA - BALANCED #############
 set.seed(1234)
 
-trainset_1 <- data %>% filter(fraud_label == 1) %>% head(1000) 
-trainset_0 <- data %>% filter(fraud_label == 0) %>% head(1000) 
+trainset_1 <- data_1hot %>% filter(fraud_label == 1) %>% head(1000) 
+trainset_0 <- data_1hot %>% filter(fraud_label == 0) %>% head(1000) 
 
 trainset <- rbind(trainset_0, trainset_1)
-testset <- data %>% filter(! id %in% trainset$id)
+testset <- data_1hot %>% filter(! id %in% trainset$id)
 
 trainset %>% nrow
 testset %>% nrow
@@ -78,20 +78,34 @@ rf_model = randomForest(x = trainset %>% select(-fraud_label),
                          y = trainset$fraud_label,
                          ntree = 100, mtry = 10)
 
-tree_model <- rpart(fraud_label ~ ., data = trainset)
+tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
 
 plot(tree_model)
 
 ##### TEST MODEL ####
-pred_test <- tree_model %>% 
+pred_test <- rf_model %>% 
   predict(newdata = testset)
 
 predictions <-cbind(data.frame(train_preds = pred_test, testset$fraud_label))
+predictions %>% glimpse
 
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
 
 
+pred_test <- tree_model %>% 
+  predict(newdata = testset) %>% 
+  as_tibble %>% 
+  mutate(score = `0`) %>% 
+  select(score)
+pred_test %>% glimpse
+
+predictions <-cbind(data.frame(train_preds = ifelse(pred_test$score<0.5, 1, 0) %>% as.factor, 
+                               testset$fraud_label))
+predictions %>% glimpse
+
+cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
+print(cm)
 
 
 
