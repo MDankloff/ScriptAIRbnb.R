@@ -60,6 +60,10 @@ get_label <- function(price, review, room, hood){
   p_fraud <- mean(p_price(price), p_review(review))
   if(room %in% hi_room) { p_fraud <- mean(p_fraud, 0.9) }
   if(hood %in% hi_hood) { p_fraud <- mean(p_fraud, 0.8) }
+  # if(room %in% hi_room) { p_fraud <- min(p_fraud + 0.4, 0.95) }
+  # if(hood %in% hi_hood) { p_fraud <- min(p_fraud + 0.4, 0.95) }
+  p_fraud <- min(p_fraud, 0.95)
+  p_fraud <- max(p_fraud, 0)
   rbinom(1, 1, p_fraud) %>% return
 }
 
@@ -69,7 +73,7 @@ data <- data %>%
   mutate(fraud_label = factor(fraud_label))
 
 data$fraud_label %>% summary
-data %>% glimpse
+# data %>% glimpse
 
 ##### EXPORT NEW DATA #############
 data %>% write.csv('data_synth_v2.csv', row.names = FALSE)
@@ -80,7 +84,7 @@ data_1hot <- one_hot(data %>% setDT) %>%
   mutate(fraud_label = fraud_label_1 %>% as.factor) %>%
   select(-fraud_label_0, -fraud_label_1)
 
-data_1hot %>% glimpse
+# data_1hot %>% glimpse
 
 ##### SPLIT DATA - BALANCED #############
 set.seed(1234)
@@ -99,7 +103,7 @@ data %>% nrow
 set.seed(1234)
 rf_model = randomForest(x = trainset %>% select(-fraud_label),
                         y = trainset$fraud_label,
-                        ntree = 100, mtry = 10)
+                        ntree = 5, mtry = 6)
 
 tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
 # plot(tree_model)
