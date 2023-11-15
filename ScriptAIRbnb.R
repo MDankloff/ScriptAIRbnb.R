@@ -124,7 +124,7 @@ print(cm)
 #use Classee
 
 # APPLY SHAP 
-exp_shap <- explain(regressor, data = testset, y= testset$fraud_label, label = "Regressor model")
+exp_shap <- explain(regressor, data = testset, y= data_1hot$fraud_label, label = "Regressor model")
 exp_shap
 
 fi_shap <- model_parts(exp_shap, B= 10, loss_function = loss_one_minus_auc)
