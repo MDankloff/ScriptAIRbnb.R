@@ -5,7 +5,7 @@ if(!require('tidyverse')) install.packages('tidyverse')
 library(tidyverse)
 if(!require('randomForest')) install.packages('randomForest')
 library (randomForest)
-# if(!require('ranger')) install.packages('ranger')
+#if(!require('ranger')) install.packages('ranger')
 # library (ranger)
 if(!require('ggplot2')) install.packages('ggplot2')
 library (ggplot2)
@@ -98,21 +98,17 @@ data_w_bias <- data_w_bias %>% mutate(neighbourhood = as.factor(neighbourhood), 
 #data_w_bias %>% glimpse
 
 ############### ONE HOT ENCODING room_type & neighbourhood ##############
-#dum_data1 <- model.matrix(~ neighbourhood -1, data = data_w_bias)
-#dum_data2 <- model.matrix(~ room_type -1, data = data_w_bias)
-
-dum_data1 <- one_hot(data_w_bias %>% setDT) %>% glimpse
-as_tibble %>%
+dum_data <- one_hot(data_w_bias %>% setDT) %>% as_tibble %>%
   mutate(fraud_label = fraud_label_1 %>% as.factor) %>%
   select(-fraud_label_0, -fraud_label_1)
 
-dum_data <- cbind(dum_data1, dum_data2, data_w_bias)
+#dum_data <- cbind(dum_data1, dum_data2, data_w_bias)
 #dum_data <- dum_data %>% select (-neighbourhood, -room_type) 
 dum_data %>% glimpse 
 
 ###change Doubles into factors##
-double_columns <- sapply(dum_data, is.double)
-dum_data[double_columns] <- lapply(dum_data[double_columns], as.factor)
+#double_columns <- sapply(dum_data, is.double)
+#dum_data[double_columns] <- lapply(dum_data[double_columns], as.factor)
 
 #######CHANGE NAMES - TO . SO RANDOM FOREST RECOGNIZES OBJECTS #####
 names(dum_data) <- make.names(names(dum_data))
@@ -124,7 +120,7 @@ split <- sample.split(dum_data$fraud_label, SplitRatio = 0.67)
 trainset <- subset(dum_data, split == TRUE)
 testset <- subset(dum_data, split == FALSE)
 #testset %>% glimpse
-#trainset %>% glimpse
+trainset %>% glimpse
 
 #### CHANGE TO FACTORS
 #trainset <- trainset %>% mutate(neighbourhood = as.factor(neighbourhood), room_type=as.factor(room_type))
@@ -133,9 +129,16 @@ testset <- subset(dum_data, split == FALSE)
 ############# FITTING RANDOM FOREST CLASSIFICATION MODEL TO DATA SET ############
 set.seed(123)
 
-modelfraud <- ranger((trainset$fraud_label)~ ., data = trainset, ntree = 1)
+#modelfraud <- randomForest((trainset$fraud_label)~ ., data = trainset, ntree = 1)
 
-modelfraud
+#modelfraud
+
+modelfraud <- randomForest(x = trainset %>% select(-fraud_label),
+                        y = trainset$fraud_label,
+                        ntree = 100, mtry = 10)
+#tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
+
+plot(modelfraud)
 
 #####Check optimal number of trees through error #####
 oob.error.data <-data.frame(Trees=rep(1:nrow(modelfraud$err.rate), times = 3),
