@@ -23,7 +23,7 @@ options(rstudio.help.showDataPreview = FALSE)
 # options(stringsAsFactors = FALSE)
 
 ##### LOAD DATA #############
-data <- read.csv('new_listings.csv') %>% as_tibble
+data <- read.csv('output/new_listings.csv') %>% as_tibble
 data %>% glimpse
 
 ##### PREPARE DATA #############
