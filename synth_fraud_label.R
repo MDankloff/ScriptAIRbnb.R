@@ -16,26 +16,24 @@ if(!require('data.table')) install.packages('data.table')
 library(data.table)
 if(!require('rpart')) install.packages('rpart') 
 library(rpart)
-if(!require('DALEX')) install.packages('DALEX')
-library(DALEX)
 
 options(rstudio.help.showDataPreview = FALSE)
-# options(stringsAsFactors = FALSE)
+#options(stringsAsFactors = FALSE)
 
 ##### LOAD DATA #############
-data <- read.csv('new_listings.csv') %>% as_tibble
-data %>% glimpse
+data_orig <- read.csv('listings.csv') %>% as_tibble
+#data_orig <- data_orig %>% 
+#  mutate(last_review = last_review %>% as_date()) 
 
-##### PREPARE DATA #############
+data <- data_orig
+
+#### PREPARE DATA ######
 data <- data  %>% 
   select(-neighbourhood_group, -latitude, -longitude, -name, -host_name, -host_id) %>%
   drop_na
 
 data <- data %>%
-  mutate(last_review = last_review %>% as_date %>% as.integer) 
-
-data_prep <- data %>%
-  mutate(fraud_label = fraud_label %>% as.factor) %>%
+  mutate(last_review = last_review %>% as_date %>% as.integer)  %>%
   mutate(neighbourhood = neighbourhood %>% 
            str_replace_all("[ -]", "_") %>% str_replace_all("___", "_") %>% 
            as.factor) %>%
@@ -43,76 +41,106 @@ data_prep <- data %>%
            str_replace_all("[ -/]", "_") %>% str_replace_all("___", "_") %>% 
            as.factor) 
 
-data_prep %>% glimpse
+data %>% glimpse
 
-data_1hot <- one_hot(data_prep %>% setDT) %>%
+##### LABELLING PREP #############
+# Room & Hood (categories)
+hi_room <- data$room_type %>% fct_unique %>% sort
+hi_room <- hi_room[1]
+
+hi_hood <- data$neighbourhood %>% fct_unique %>% sort
+hi_hood <- hi_hood[c(4, 2, 19, 13)]
+
+# Price & Review (percentiles)
+p_price <- ecdf(data$price)
+p_review <- ecdf(data$reviews_per_month)
+
+##### LABELLING FUNCTION #############
+get_label <- function(price, review, room, hood){
+  p_fraud <- mean(p_price(price), p_review(review))
+  if(room %in% hi_room) { p_fraud <- mean(p_fraud, 0.9) }
+  if(hood %in% hi_hood) { p_fraud <- mean(p_fraud, 0.8) }
+  # if(room %in% hi_room) { p_fraud <- min(p_fraud + 0.4, 0.95) }
+  # if(hood %in% hi_hood) { p_fraud <- min(p_fraud + 0.4, 0.95) }
+  p_fraud <- min(p_fraud, 0.95)
+  p_fraud <- max(p_fraud, 0)
+  rbinom(1, 1, p_fraud) %>% return
+}
+
+data <- data %>% 
+  rowwise %>%
+  mutate(fraud_label = get_label(price, number_of_reviews, room_type, neighbourhood)) %>%
+  mutate(fraud_label = factor(fraud_label))
+
+data$fraud_label %>% summary
+# data %>% glimpse
+
+##### EXPORT NEW DATA #############
+data %>% write.csv('data_synth_v2.csv', row.names = FALSE)
+
+##### 1-HOT ENCODING #############
+data_1hot <- one_hot(data %>% setDT) %>%
   as_tibble %>%
   mutate(fraud_label = fraud_label_1 %>% as.factor) %>%
   select(-fraud_label_0, -fraud_label_1)
 
-data_1hot %>% glimpse
-
-##### SPLIT DATA - RANDOM #############
-set.seed(1234)
-
-split <- sample.split(data_1hot$fraud_label, SplitRatio = 2/3)
-trainset_random <- subset(data_1hot, split == TRUE)
-testset_random <- subset(data_1hot, split == FALSE)
+# data_1hot %>% glimpse
 
 ##### SPLIT DATA - BALANCED #############
 set.seed(1234)
 
-trainset_1 <- data_1hot %>% filter(fraud_label == 1) %>% head(1000) 
-trainset_0 <- data_1hot %>% filter(fraud_label == 0) %>% head(1000) 
+trainset_1 <- data_1hot %>% filter(fraud_label == 1) %>% head(2000) 
+trainset_0 <- data_1hot %>% filter(fraud_label == 0) %>% head(2000) 
 
 trainset <- rbind(trainset_0, trainset_1)
 testset <- data_1hot %>% filter(! id %in% trainset$id)
 
 trainset %>% nrow
 testset %>% nrow
-data_1hot %>% nrow
+data %>% nrow
 
 ##### FIT MODEL ####
 set.seed(1234)
 rf_model = randomForest(x = trainset %>% select(-fraud_label),
-                         y = trainset$fraud_label,
-                         ntree = 100, mtry = 10)
+                        y = trainset$fraud_label,
+                        ntree = 5, mtry = 6)
 
 tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
-
-plot(tree_model)
+# plot(tree_model)
 
 ##### TEST MODEL ####
-pred_test <- rf_model %>% 
-  predict(newdata = testset)
+pred_test <- rf_model %>% predict(newdata = testset)
 
 predictions <-cbind(data.frame(train_preds = pred_test, testset$fraud_label))
-predictions %>% glimpse
+# predictions %>% glimpse
 
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
+
 
 pred_test <- tree_model %>% 
   predict(newdata = testset) %>% 
   as_tibble %>% 
   mutate(score = `0`) %>% 
   select(score)
-pred_test %>% glimpse
+# pred_test %>% glimpse
 
 predictions <-cbind(data.frame(train_preds = ifelse(pred_test$score<0.5, 1, 0) %>% as.factor, 
                                testset$fraud_label))
-predictions %>% glimpse
+# predictions %>% glimpse
 
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
 
-#### APPLY SHAP ###
-#trainset <- as.numeric(unlist(trainset))
-#testset <- as.numeric(unlist(testset))
 
 
-#Shap_dum <- explain(predictions, data = testset, y= testset$fraud_label, label = "Fraud model")
 
-#plot(Shap_dum)
+
+##### SHAP ####
+exp_shap <- explain(regressor, data = testset, y= testset$fraud_label, label = "Regressor model")
+exp_shap
+
+fi_shap <- model_parts(exp_shap, B= 10, loss_function = loss_one_minus_auc)
+plot(fi_shap)
 
 
