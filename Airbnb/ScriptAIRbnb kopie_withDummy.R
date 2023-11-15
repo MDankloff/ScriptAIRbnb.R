@@ -73,7 +73,7 @@ data_w_bias %>% nrow
 
 ##### EXPORT NEW DATA #############
 
-data_w_bias %>% write.csv('new_listings.csv', row.names = FALSE)
+data_w_bias %>% write.csv('output/new_listings.csv', row.names = FALSE)
 
 #### REMOVE NA PREDICTORS ######
 data_w_bias = subset(data_w_bias, select = -c(neighbourhood_group))
