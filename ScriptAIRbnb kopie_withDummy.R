@@ -1,11 +1,12 @@
 ##### INIT #############
-
 setwd(dirname(rstudioapi::getSourceEditorContext()$path)) 
 
 if(!require('tidyverse')) install.packages('tidyverse')
 library(tidyverse)
 if(!require('randomForest')) install.packages('randomForest')
 library (randomForest)
+# if(!require('ranger')) install.packages('ranger')
+# library (ranger)
 if(!require('ggplot2')) install.packages('ggplot2')
 library (ggplot2)
 if(!require('cowplot')) install.packages('cowplot')
@@ -22,6 +23,7 @@ if(!require('mltools')) install.packages('mltools')
 library(mltools)
 if(!require('shapper')) install.packages('shapper')
 library(shapper)
+
 #options(stringsAsFactors = FALSE)
 
 ##### LOAD DATA #############
@@ -29,7 +31,7 @@ data_orig <- read.csv('listings.csv') %>% as_tibble
 #data_orig <- data_orig %>% 
 #  mutate(last_review = last_review %>% as_date()) 
 
-data_orig %>% glimpse
+#data_orig %>% glimpse
 
 ################ ADD FRAUD LABELS ####################
 fraud_rate <- 0.1
@@ -77,10 +79,7 @@ data_w_bias %>% write.csv('new_listings.csv', row.names = FALSE)
 data_w_bias = subset(data_w_bias, select = -c(neighbourhood_group))
 data_w_bias <- data_w_bias %>% drop_na
 
-#### CONVERTING OUTCOME TO FACTOR (otherwise random forest doesn't work) & assign text to outcome  ####
-data_w_bias <- data_w_bias %>%
-  mutate(fraud_label_text = ifelse(fraud_label == 0, "Not_Fraud", "Fraud") )
-
+#### CONVERTING OUTCOME TO FACTOR (otherwise random forest doesn't work)  ####
 data_w_bias$fraud_label <- as.factor(data_w_bias$fraud_label)
 glimpse(data_w_bias)
 
@@ -99,8 +98,13 @@ data_w_bias <- data_w_bias %>% mutate(neighbourhood = as.factor(neighbourhood), 
 #data_w_bias %>% glimpse
 
 ############### ONE HOT ENCODING room_type & neighbourhood ##############
-dum_data1 <- model.matrix(~ neighbourhood -1, data = data_w_bias)
-dum_data2 <- model.matrix(~ room_type -1, data = data_w_bias)
+#dum_data1 <- model.matrix(~ neighbourhood -1, data = data_w_bias)
+#dum_data2 <- model.matrix(~ room_type -1, data = data_w_bias)
+
+dum_data1 <- one_hot(data_w_bias %>% setDT) %>% glimpse
+as_tibble %>%
+  mutate(fraud_label = fraud_label_1 %>% as.factor) %>%
+  select(-fraud_label_0, -fraud_label_1)
 
 dum_data <- cbind(dum_data1, dum_data2, data_w_bias)
 #dum_data <- dum_data %>% select (-neighbourhood, -room_type) 
@@ -122,13 +126,6 @@ testset <- subset(dum_data, split == FALSE)
 #testset %>% glimpse
 #trainset %>% glimpse
 
-#-------------------old stuff
-#trainset_X <- trainset %>%  select(-fraud_label, -fraud_label_text)
-#testset_X <- testset %>%  select(-fraud_label, -fraud_label_text)
-#trainset_Y <- trainset %>% select(fraud_label)
-#testset_Y <- testset %>% select(fraud_label)
-#--------------------
-
 #### CHANGE TO FACTORS
 #trainset <- trainset %>% mutate(neighbourhood = as.factor(neighbourhood), room_type=as.factor(room_type))
 #testset <- testset %>% mutate(neighbourhood = as.factor(neighbourhood), room_type=as.factor(room_type))
@@ -136,7 +133,7 @@ testset <- subset(dum_data, split == FALSE)
 ############# FITTING RANDOM FOREST CLASSIFICATION MODEL TO DATA SET ############
 set.seed(123)
 
-modelfraud <- randomForest((trainset$fraud_label)~ ., data = trainset, ntree = 1)
+modelfraud <- ranger((trainset$fraud_label)~ ., data = trainset, ntree = 1)
 
 modelfraud
 
@@ -168,7 +165,7 @@ predictions %>% glimpse
 
 ####Confusion matrix ####
 cm <- caret::confusionMatrix(predictions, predictions$testset.fraud_label)
-                         
+
 print(cm)
 
 ####### APPLY SHAP #########
@@ -178,4 +175,8 @@ print(cm)
 
 #exp_shap <- explain(fraud_pred, data = testset_X, y= testset_Y, label = "Classification model")
 #plot.shapr(exp_shap)
+
+
+
+
 
