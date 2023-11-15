@@ -18,6 +18,8 @@ if(!require('data.table')) install.packages('data.table')
 library(data.table)
 if(!require('rpart')) install.packages('rpart') 
 library(rpart)
+if(!require('DALEX')) install.packages('DALEX')
+library(DALEX)
 
 options(rstudio.help.showDataPreview = FALSE)
 # options(stringsAsFactors = FALSE)
@@ -70,7 +72,7 @@ testset <- data_1hot %>% filter(! id %in% trainset$id)
 
 trainset %>% nrow
 testset %>% nrow
-data %>% nrow
+data_1hot %>% nrow
 
 ##### FIT MODEL ####
 set.seed(1234)
@@ -92,7 +94,6 @@ predictions %>% glimpse
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
 
-
 pred_test <- tree_model %>% 
   predict(newdata = testset) %>% 
   as_tibble %>% 
@@ -107,5 +108,13 @@ predictions %>% glimpse
 cm <- caret::confusionMatrix(predictions$train_preds, predictions$testset.fraud_label)
 print(cm)
 
+#### APPLY SHAP ###
+#trainset <- as.numeric(unlist(trainset))
+#testset <- as.numeric(unlist(testset))
+
+
+#Shap_dum <- explain(predictions, data = testset, y= testset$fraud_label, label = "Fraud model")
+
+#plot(Shap_dum)
 
 
