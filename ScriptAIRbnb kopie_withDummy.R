@@ -110,7 +110,7 @@ dum_data %>% glimpse
 double_columns <- sapply(dum_data, is.double)
 dum_data[double_columns] <- lapply(dum_data[double_columns], as.factor)
 
-#######CHANGE NAMES - TO . SO RANDOM FOREST RECOGNIZES OBJECTS ######
+#######CHANGE NAMES - TO . SO RANDOM FOREST RECOGNIZES OBJECTS #####
 names(dum_data) <- make.names(names(dum_data))
 
 ############### SPLIT DATA SET INTO TRAIN AND TEST SET -- seperate colums for FRAUD ########
@@ -162,7 +162,6 @@ oob.values
 
 pred_test <- predict(modelfraud, data = testset, type = "class")
 pred_test
-
 
 predictions <-cbind(data.frame(pred_train = pred_test, predictions$testset.fraud_label))
 predictions %>% glimpse
