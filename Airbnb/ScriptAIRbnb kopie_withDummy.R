@@ -160,14 +160,17 @@ oob.values
 
 ############# MAKE PREDICTIONS ON TEST DATA  #################
 
-pred_test <- predict(modelfraud, data = testset, type = "class")
+pred_test <- predict(modelfraud, newdata = testset, type = "class")
 pred_test
 
-predictions <-cbind(data.frame(pred_train = pred_test, predictions$testset.fraud_label))
+#pred_test <- modelfraud %>% predict(new_data=testset)
+#pred_test
+
+predictions <-cbind(data.frame(pred_train = pred_test, testset$fraud_label))
 predictions %>% glimpse
 
 ####Confusion matrix ####
-cm <- caret::confusionMatrix(predictions, predictions$testset.fraud_label)
+cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 
 print(cm)
 
