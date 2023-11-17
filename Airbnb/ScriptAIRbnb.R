@@ -176,17 +176,18 @@ cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 print(cm)
 
 ####### APPLY SHAP #########
-## change this back to numeric otherwise shap doesnt work
+
 small_sample <- slice_sample(trainset, n = 100)
 
-n_sample <- as.numeric(unlist(small_sample))
+## change this back to numeric otherwise shap doesnt work
+#n_sample <- as.numeric(unlist(small_sample))
 
-#small_sample <- slice_sample(n_trainset, n = 100)
+exp_rf <- explain(modelfraud, data = small_sample, y= small_sample$fraud_label, label = "Classification model")
 
-exp_rf <- explain(modelfraud, data = n_sample, y= small_sample$fraud_label, label = "Classification model")
+indiv = data.frame(testset, 1)
 
-indiv = head(testset, 1)
 ive_rf <- shap(exp_rf, new_observation = indiv)
+
 plot(ive_rf)
 
 
