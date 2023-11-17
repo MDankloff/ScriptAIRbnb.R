@@ -50,21 +50,22 @@ data_w_fraud %>% glimpse
 
 ################# ADD PRIOR IN FRAUD LABELS FOR NEIGHBOURHOOD ################
 ### Separate subset of the data
-hood <- "Oostelijk Havengebied - Indische Buurt"
+#hood <- "Oostelijk Havengebied - Indische Buurt"
 
-data_in_hood <- data_w_fraud %>% filter(neighbourhood == hood) 
-data_not_in_hood <- data_w_fraud %>% filter(neighbourhood != hood) 
+#data_in_hood <- data_w_fraud %>% filter(neighbourhood == hood) 
+#data_not_in_hood <- data_w_fraud %>% filter(neighbourhood != hood) 
 
 ### Make fraud labels for hood ####
-fraud_rate_hood <- 0.4
-n_case <- data_in_hood %>% nrow
+#fraud_rate_hood <- 0.4
+#fraud_rate_hood <- 1
+#n_case <- data_in_hood %>% nrow
 
-fraud <- rep(1, (n_case*fraud_rate) %>% round)
-nonfraud <- rep(0, n_case - (fraud %>% length) ) 
-new_label <- c(fraud, nonfraud) %>% sample
+#fraud <- rep(1, (n_case*fraud_rate) %>% round)
+#nonfraud <- rep(0, n_case - (fraud %>% length) ) 
+#new_label <- c(fraud, nonfraud) %>% sample
 
-data_in_hood <- data_in_hood %>%
-  mutate(fraud_label = new_label)
+#data_in_hood <- data_in_hood %>%
+ # mutate(fraud_label = new_label)
 
 ### Merge modified data subset with the unmodified one.
 
@@ -135,7 +136,7 @@ set.seed(123)
 
 modelfraud <- randomForest(x = trainset %>% select(-fraud_label),
                         y = trainset$fraud_label,
-                        ntree = 100, mtry = 10)
+                        ntree = 25, mtry = 10)
 #tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
 
 plot(modelfraud)
@@ -176,10 +177,9 @@ print(cm)
 
 ####### APPLY SHAP #########
 ## change this back to numeric otherwise shap doesnt work
-#testset_X <- as.numeric(unlist(testset_X))
-#testset_Y <- as.numeric(unlist(testset_Y))
+#testset <- as.numeric(unlist(testset))
 
-#exp_shap <- explain(fraud_pred, data = testset_X, y= testset_Y, label = "Classification model")
+exp_shap <- explain(modelfraud, data = trainset, y= trainset$fraud_label, label = "Classification model")
 #plot.shapr(exp_shap)
 
 
