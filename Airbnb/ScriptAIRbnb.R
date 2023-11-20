@@ -177,15 +177,16 @@ print(cm)
 
 ####### APPLY SHAP #########
 
+#take a smaller sample otherwise shap loading takes long
 small_sample <- slice_sample(trainset, n = 100)
 
-## change this back to numeric otherwise shap doesnt work
-#n_sample <- as.numeric(unlist(small_sample))
+## change this Y to numeric otherwise shap doesnt work and create explainer
+exp_rf <- explain(modelfraud, data = small_sample, y= as.numeric(small_sample$fraud_label), label = "Classification model")
 
-exp_rf <- explain(modelfraud, data = small_sample, y= small_sample$fraud_label, label = "Classification model")
+#take one individual prediction from testset
+indiv = testset[1,]
 
-indiv = data.frame(testset, 1)
-
+#try to explain the individual prediction
 ive_rf <- shap(exp_rf, new_observation = indiv)
 
 plot(ive_rf)
