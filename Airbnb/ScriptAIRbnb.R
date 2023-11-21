@@ -191,10 +191,15 @@ exp_rf <- explain(modelfraud, data = small_sample_df, y= y_numeric, label = "Cla
 df_indiv <- data.frame(testset[1,])
 df_indiv$fraud_label <- as.numeric(df_indiv$fraud_label)
 
-#try to explain the individual prediction
+#explain aggregated SHAP individual prediction
 ive_rf <- shap_aggregated(exp_rf, new_observation = df_indiv)
-
 plot(ive_rf)
+
+#explain instance level parts 
+bd_rf <- predict_parts_break_down(exp_rf, new_observation = df_indiv)
+plot(bd_rf)
+
+
 
 
 
