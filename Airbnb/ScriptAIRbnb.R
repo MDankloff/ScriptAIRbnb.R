@@ -176,26 +176,18 @@ cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 print(cm)
 
 ####### APPLY SHAP #########
-
 #take a smaller sample otherwise shap loading takes long
 small_sample <- slice_sample(trainset, n = 100)
 
-#convert data to a data frame
-small_sample_df <- as.data.frame(small_sample)
-
-## change Y to numeric otherwise shap doesnt work 
-y_numeric <- as.numeric(small_sample$fraud_label)
-#create explainer
-exp_rf <- explain(modelfraud, data = small_sample_df, y= y_numeric, label = "Classification model")
+## change this Y to numeric otherwise shap doesnt work and create explainer
+exp_rf <- explain(modelfraud, data = small_sample, y= as.numeric(small_sample$fraud_label), label = "Classification model")
 
 #take one individual prediction from testset
-df_indiv <- data.frame(testset[1,])
-df_indiv$fraud_label <- as.numeric(df_indiv$fraud_label)
+indiv = testset[1,]
 
 #try to explain the individual prediction
-ive_rf <- shap_aggregated(exp_rf, new_observation = df_indiv)
+ive_rf <- shap(exp_rf, new_observation = indiv)
 
 plot(ive_rf)
-
 
 
