@@ -130,10 +130,6 @@ trainset %>% glimpse
 ############# FITTING RANDOM FOREST CLASSIFICATION MODEL TO DATA SET ############
 set.seed(123)
 
-#modelfraud <- randomForest((trainset$fraud_label)~ ., data = trainset, ntree = 1)
-
-#modelfraud
-
 modelfraud <- randomForest(x = trainset %>% select(-fraud_label),
                         y = trainset$fraud_label,
                         ntree = 25, mtry = 10)
@@ -141,22 +137,22 @@ modelfraud <- randomForest(x = trainset %>% select(-fraud_label),
 
 plot(modelfraud)
 
-#####Check optimal number of trees through error #####
-oob.error.data <-data.frame(Trees=rep(1:nrow(modelfraud$err.rate), times = 3),
-                            Type=rep(c("OOB", "0", "1"), each=nrow(modelfraud$err.rate)),
-                            Error=c(modelfraud$err.rate[,"OOB"], 
-                                    modelfraud$err.rate[,"0"],
-                                    modelfraud$err.rate[,"1"]))
-ggplot(data= oob.error.data, aes(x=Trees, y=Error)) +
-  geom_line(aes(color=Type))
-
-#####Check for optimal no of variables at each split####
-oob.values <- vector(length = 10)
-for (i in 1:10) {
-  temp_modelfraud <- randomForest((trainset$fraud_label) ~ ., data = trainset, mtry = i, ntree = 5)
-  oob.values[i] <- temp_modelfraud$err.rate[nrow(temp_modelfraud$err.rate),1]
-}
-oob.values
+# #####Check optimal number of trees through error #####
+# oob.error.data <-data.frame(Trees=rep(1:nrow(modelfraud$err.rate), times = 3),
+#                             Type=rep(c("OOB", "0", "1"), each=nrow(modelfraud$err.rate)),
+#                             Error=c(modelfraud$err.rate[,"OOB"], 
+#                                     modelfraud$err.rate[,"0"],
+#                                     modelfraud$err.rate[,"1"]))
+# ggplot(data= oob.error.data, aes(x=Trees, y=Error)) +
+#   geom_line(aes(color=Type))
+# 
+# #####Check for optimal no of variables at each split####
+# oob.values <- vector(length = 10)
+# for (i in 1:10) {
+#   temp_modelfraud <- randomForest((trainset$fraud_label) ~ ., data = trainset, mtry = i, ntree = 5)
+#   oob.values[i] <- temp_modelfraud$err.rate[nrow(temp_modelfraud$err.rate),1]
+# }
+# oob.values
 
 
 ############# MAKE PREDICTIONS ON TEST DATA  #################
@@ -188,17 +184,16 @@ y_numeric <- as.numeric(small_sample$fraud_label)
 exp_rf <- explain(modelfraud, data = small_sample_df, y= y_numeric, label = "Classification model")
 
 #take one individual prediction from testset
-df_indiv <- data.frame(testset[1,])
+df_indiv <- data.frame(testset[3,])
 df_indiv$fraud_label <- as.numeric(df_indiv$fraud_label)
 
-#explain aggregated SHAP individual prediction
+#explain aggregated SHAP prediction
 ive_rf <- shap_aggregated(exp_rf, new_observation = df_indiv)
 plot(ive_rf)
 
 #explain instance level parts 
-bd_rf <- predict_parts_break_down(exp_rf, new_observation = df_indiv)
+bd_rf <- predict_parts(exp_rf, new_observation = df_indiv)
 plot(bd_rf)
-
 
 
 
