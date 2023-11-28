@@ -5,8 +5,6 @@ if(!require('tidyverse')) install.packages('tidyverse')
 library(tidyverse)
 if(!require('randomForest')) install.packages('randomForest')
 library (randomForest)
-#if(!require('ranger')) install.packages('ranger')
-# library (ranger)
 if(!require('ggplot2')) install.packages('ggplot2')
 library (ggplot2)
 if(!require('cowplot')) install.packages('cowplot')
@@ -23,6 +21,8 @@ if(!require('mltools')) install.packages('mltools')
 library(mltools)
 if(!require('shapper')) install.packages('shapper')
 library(shapper)
+if(!require('lime')) install.packages('lime')
+library(lime)
 
 #options(stringsAsFactors = FALSE)
 
@@ -67,7 +67,7 @@ new_label <- c(fraud, nonfraud) %>% sample
 data_in_hood <- data_in_hood %>%
   mutate(fraud_label = new_label)
 
-### Merge modified data subset with the unmodified one.
+### Merge modified data subset with the unmodified data subset
 
 data_w_bias <- bind_rows(data_in_hood, data_not_in_hood)
 data_w_bias %>% nrow
@@ -87,8 +87,7 @@ glimpse(data_w_bias)
 #### CONVERTING LAST REVIEW TO NUMERIC  ####
 data_w_bias <- data_w_bias %>%
   mutate(last_review = as.numeric(as_date(last_review))) 
-
-data_w_bias %>% glimpse
+#data_w_bias %>% glimpse
 
 ####REMOVE VARIABLES NOT NEEDED ######
 data_w_bias <- data_w_bias %>% select (-id, -name, -host_id, -host_name, -latitude, -longitude)
@@ -105,7 +104,7 @@ dum_data <- one_hot(data_w_bias %>% setDT) %>% as_tibble %>%
 
 #dum_data <- cbind(dum_data1, dum_data2, data_w_bias)
 #dum_data <- dum_data %>% select (-neighbourhood, -room_type) 
-dum_data %>% glimpse 
+#dum_data %>% glimpse 
 
 ###change Doubles into factors##
 #double_columns <- sapply(dum_data, is.double)
@@ -114,14 +113,14 @@ dum_data %>% glimpse
 #######CHANGE NAMES - TO . SO RANDOM FOREST RECOGNIZES OBJECTS #####
 names(dum_data) <- make.names(names(dum_data))
 
-############### SPLIT DATA SET INTO TRAIN AND TEST SET -- seperate colums for FRAUD ########
+############### SPLIT DATA SET INTO TRAIN AND TEST SET -- separate columns for FRAUD ########
 set.seed(1234)
 
 split <- sample.split(dum_data$fraud_label, SplitRatio = 0.67)
 trainset <- subset(dum_data, split == TRUE)
 testset <- subset(dum_data, split == FALSE)
 #testset %>% glimpse
-trainset %>% glimpse
+#trainset %>% glimpse
 
 #### CHANGE TO FACTORS
 #trainset <- trainset %>% mutate(neighbourhood = as.factor(neighbourhood), room_type=as.factor(room_type))
@@ -133,7 +132,6 @@ set.seed(123)
 modelfraud <- randomForest(x = trainset %>% select(-fraud_label),
                         y = trainset$fraud_label,
                         ntree = 25, mtry = 10)
-#tree_model <- rpart(fraud_label ~ ., data = trainset, method = "class")
 
 plot(modelfraud)
 
@@ -172,29 +170,45 @@ cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 print(cm)
 
 ####### APPLY SHAP #########
-#take a smaller sample otherwise shap loading takes long
+# #take a smaller sample otherwise shap loading takes long
 small_sample <- slice_sample(trainset, n = 100)
 
-#convert data to a data frame
+# #convert data to a data frame
 small_sample_df <- as.data.frame(small_sample)
-
-## change Y to numeric otherwise shap doesnt work 
+ 
+# ## change Y to numeric otherwise shap doesnt work 
 y_numeric <- as.numeric(small_sample$fraud_label)
-#create explainer
-exp_rf <- explain(modelfraud, data = small_sample_df, y= y_numeric, label = "Classification model")
 
-#take one individual prediction from testset
+# #create SHAP explainer
+# exp_rf <- explain(modelfraud, data = small_sample_df, y= y_numeric, label = "Classification model")
+
+# #take one individual prediction from testset
 df_indiv <- data.frame(testset[3,])
 df_indiv$fraud_label <- as.numeric(df_indiv$fraud_label)
+# 
+# #explain aggregated SHAP 
+# ive_rf <- shap_aggregated(exp_rf, new_observation = df_indiv)
+# plot(ive_rf)
+# 
+# #explain SHAP instance level  
+# bd_rf <- predict_parts(exp_rf, new_observation = df_indiv)
+# plot(bd_rf)
 
-#explain aggregated SHAP prediction
-ive_rf <- shap_aggregated(exp_rf, new_observation = df_indiv)
-plot(ive_rf)
+###### APPLY LIME #######
+#lime not applicable for random forest - convert it to predict function
+#takes a dataset as input and uses the predict method of random forest model to generate predictions
+# 
+rf_predict <- function(trainset) {
+   return(predict(modelfraud, trainset))
+ }
+# 
+# #create LIME explainer
+lime_rf <- DALEXtra::predict_surrogate_lime(rf_predict, new_observation = df_indiv)
+plot(lime_rf)
 
-#explain instance level parts 
-bd_rf <- predict_parts(exp_rf, new_observation = df_indiv)
-plot(bd_rf)
-
-
-
-
+lime_explainer <- lime(x= small_sample_df, model = rf_predict, feature_names = colnames(trainset))
+# 
+## explain LIME instance level
+lime_result <- lime::explain(lime_explainer, new_observation = df_indiv)
+# 
+# plot_explanations(lime_result)
