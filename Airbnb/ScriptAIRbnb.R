@@ -166,9 +166,9 @@ predictions <-cbind(data.frame(pred_train = pred_test, testset$fraud_label))
 
 #-------------------------------------------------------------------------------
 ####Confusion matrix ####
-#cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
+cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 
-#print(cm)
+print(cm)
 #-------------------------------------------------------------------------------
 ####### APPLY SHAP and LIME #########
 # #take a smaller sample otherwise loading takes long
