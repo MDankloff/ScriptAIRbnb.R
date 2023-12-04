@@ -166,7 +166,7 @@ predictions <-cbind(data.frame(pred_train = pred_test, testset$fraud_label))
 
 #-------------------------------------------------------------------------------
 ####Confusion matrix ####
-cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
+#cm <- caret::confusionMatrix(predictions$pred_train, testset$fraud_label)
 
 print(cm)
 #-------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ df_indiv <- df_indiv %>% select(-fraud_label)
 ########create LIME EXPLAINER #########
 #LIME not applicable for RANDOM FOREST - convert it to PREDICT FUNCTION
 #uses the predict method of random forest model to generate predictions
- 
+
 rf_predict <- function(trainset) {
    return(predict(modelfraud, trainset))
 }
